@@ -1,0 +1,317 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum RequirementStatus {
+  OPEN
+  CLOSED
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum HireRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum SessionStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         Role          @default(STUDENT)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  teacherProfile      TeacherProfile?
+  studentRequirements Requirement[]     @relation("StudentRequirements")
+  studentHireRequests HireRequest[]     @relation("StudentHireRequests")
+  studentBookings     Booking[]         @relation("StudentBookings")
+  studentReviews      Review[]          @relation("StudentReviews")
+  notifications       Notification[]
+
+  @@index([role])
+}
+
+model TeacherProfile {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio                String?            @db.Text
+  qualification      String?
+  experienceYears    Int                @default(0)
+  hourlyFee          Float              @default(0)
+  city               String?
+  languages          String[]           @default(["English", "Urdu"])
+  photoUrl           String?
+  introVideoUrl      String?
+  verificationStatus VerificationStatus @default(PENDING)
+  ratingAvg          Float              @default(0)
+  ratingCount        Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  subjects     TeacherSubject[]
+  availability Availability[]
+  proposals    Proposal[]
+  hireRequests HireRequest[]
+  bookings     Booking[]
+  reviews      Review[]
+
+  @@index([verificationStatus])
+  @@index([city])
+  @@index([hourlyFee])
+  @@index([ratingAvg])
+}
+
+model Subject {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  category    String?
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  teachers     TeacherSubject[]
+  requirements Requirement[]
+  hireRequests HireRequest[]
+  bookings     Booking[]
+
+  @@index([name])
+}
+
+model TeacherSubject {
+  id               String         @id @default(cuid())
+  teacherProfileId String
+  teacherProfile   TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  subjectId        String
+  subject          Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  classLevel       String // Primary, Middle, Matric, O-Level, A-Level, Intermediate, University
+  createdAt        DateTime       @default(now())
+
+  @@unique([teacherProfileId, subjectId, classLevel])
+  @@index([teacherProfileId])
+  @@index([subjectId])
+  @@index([classLevel])
+}
+
+model Availability {
+  id               String         @id @default(cuid())
+  teacherProfileId String
+  teacherProfile   TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  dayOfWeek        DayOfWeek
+  startTime        String // e.g. "16:00"
+  endTime          String // e.g. "19:00"
+
+  @@index([teacherProfileId])
+  @@index([dayOfWeek])
+}
+
+model Requirement {
+  id          String            @id @default(cuid())
+  studentId   String
+  student     User              @relation("StudentRequirements", fields: [studentId], references: [id], onDelete: Cascade)
+  subjectId   String
+  subject     Subject           @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  classLevel  String // Primary, Middle, Matric, O-Level, A-Level, Intermediate, University
+  budget      Float
+  timing      String // e.g. "Evenings (5 PM - 8 PM), 3 days/week"
+  description String            @db.Text
+  status      RequirementStatus @default(OPEN)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  proposals Proposal[]
+
+  @@index([studentId])
+  @@index([subjectId])
+  @@index([status])
+}
+
+model Proposal {
+  id            String         @id @default(cuid())
+  requirementId String
+  requirement   Requirement    @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  teacherId     String
+  teacher       TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  message       String         @db.Text
+  proposedFee   Float
+  status        ProposalStatus @default(PENDING)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([requirementId, teacherId])
+  @@index([requirementId])
+  @@index([teacherId])
+  @@index([status])
+}
+
+model HireRequest {
+  id             String            @id @default(cuid())
+  studentId      String
+  student        User              @relation("StudentHireRequests", fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId      String
+  teacher        TeacherProfile    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subjectId      String
+  subject        Subject           @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  preferredDays  String?
+  preferredTime  String?
+  classesPerWeek Int               @default(3)
+  message        String            @db.Text
+  status         HireRequestStatus @default(PENDING)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([status])
+}
+
+model Booking {
+  id          String         @id @default(cuid())
+  studentId   String
+  student     User           @relation("StudentBookings", fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId   String
+  teacher     TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subjectId   String
+  subject     Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  fee         Float
+  status      BookingStatus  @default(PENDING)
+  jitsiRoomId String         @unique
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  sessions ClassSession[]
+  payments Payment[]
+  review   Review?
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([status])
+}
+
+model ClassSession {
+  id        String        @id @default(cuid())
+  bookingId String
+  booking   Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  title     String?
+  startsAt  DateTime
+  endsAt    DateTime
+  status    SessionStatus @default(SCHEDULED)
+  notes     String?       @db.Text
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([bookingId])
+  @@index([status])
+  @@index([startsAt])
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  bookingId        String
+  booking          Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amount           Float
+  method           String // JazzCash, Easypaisa, Bank Transfer
+  transactionId    String
+  proofUrl         String?       @db.Text
+  status           PaymentStatus @default(PENDING)
+  commissionAmount Float         @default(0)
+  adminNotes       String?       @db.Text
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([bookingId])
+  @@index([status])
+}
+
+model Review {
+  id        String         @id @default(cuid())
+  bookingId String         @unique
+  booking   Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User           @relation("StudentReviews", fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId String
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  rating    Int // 1 to 5
+  comment   String         @db.Text
+  createdAt DateTime       @default(now())
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([rating])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?
+  message   String   @db.Text
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+}
+
+model PlatformSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
