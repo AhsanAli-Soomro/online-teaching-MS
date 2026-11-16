@@ -10,7 +10,6 @@ import {
   EyeOff,
   AlertCircle,
   CheckCircle2,
-  Sparkles,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -65,12 +64,6 @@ function LoginForm() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDemo = (demoEmail, demoPass) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setError("");
   };
 
   return (
@@ -144,43 +137,6 @@ function LoginForm() {
           >
             Sign In
           </Button>
-
-          {/* Quick Demo Credentials */}
-          <div className="mt-6 border-t border-slate-100 pt-5">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-              Quick Demo Accounts (1-Click Test)
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  fillDemo("admin@tutorconnect.pk", "AdminPassword123!")
-                }
-                className="rounded-lg border border-indigo-200 bg-indigo-50/70 p-2 text-center text-xs font-medium text-indigo-800 hover:bg-indigo-100 transition-colors"
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  fillDemo("ayesha.khan@example.com", "Password123!")
-                }
-                className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-2 text-center text-xs font-medium text-emerald-800 hover:bg-emerald-100 transition-colors"
-              >
-                Teacher
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  fillDemo("zainab.student@example.com", "Password123!")
-                }
-                className="rounded-lg border border-sky-200 bg-sky-50/70 p-2 text-center text-xs font-medium text-sky-800 hover:bg-sky-100 transition-colors"
-              >
-                Student
-              </button>
-            </div>
-          </div>
 
           <div className="text-center text-sm text-slate-500 pt-2">
             Don&apos;t have an account?{" "}
